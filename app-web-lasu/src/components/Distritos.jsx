@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import Papa from 'papaparse'; // <--- Usamos PapaParse
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { Button } from './ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from './ui/dialog';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
@@ -15,10 +15,14 @@ export function Distritos() {
   const [editingDistrito, setEditingDistrito] = useState(null);
   const [formData, setFormData] = useState({ nomDistr: '' });
 
-  // --- HELPER PARA LEER CSV ---
+  // --- HELPER PARA LEER CSV (Corregido para GitHub Pages) ---
   const fetchCsvData = (path) => {
+    // Quitamos la barra inicial si la tiene y agregamos la base del repo
+    const relativePath = path.startsWith('/') ? path.slice(1) : path;
+    const url = `${import.meta.env.BASE_URL}${relativePath}`;
+
     return new Promise((resolve) => {
-        Papa.parse(path, {
+        Papa.parse(url, {
             download: true,
             header: true,
             skipEmptyLines: true,
@@ -34,8 +38,7 @@ export function Distritos() {
   // --- (R)EAD: Cargar desde CSV ---
   const cargarDistritos = async () => {
     try {
-      // LEEMOS EL ARCHIVO CORRECTO: distrito.csv
-      const data = await fetchCsvData('/data/distrito.csv');
+      const data = await fetchCsvData('data/distrito.csv'); // <-- Singular y sin barra inicial
       
       // Aseguramos que el código sea string
       const distritosProcesados = data.map(d => ({
@@ -124,6 +127,7 @@ export function Distritos() {
               <DialogTitle className="text-blue-900">
                 {editingDistrito ? 'Editar Distrito' : 'Nuevo Distrito'}
               </DialogTitle>
+              <DialogDescription>Ingresa el nombre del distrito.</DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import Papa from 'papaparse';
-import { Plus, Pencil, Trash2, FileDown } from 'lucide-react';
+import { Plus, Pencil, Trash2, FileDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from './ui/dialog';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
@@ -13,6 +13,9 @@ export function Vendedores() {
   const [vendedores, setVendedores] = useState([]);
   const [distritos, setDistritos] = useState([]);
 
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [itemsPorPagina] = useState(20);
+
   const [isOpen, setIsOpen] = useState(false);
   const [editingVendedor, setEditingVendedor] = useState(null);
   const [formData, setFormData] = useState({
@@ -22,10 +25,12 @@ export function Vendedores() {
     idDistrVende: ''
   });
 
-  // --- HELPER PARA LEER CSV ---
   const fetchCsvData = (path) => {
+    const relativePath = path.startsWith('/') ? path.slice(1) : path;
+    const url = `${import.meta.env.BASE_URL}${relativePath}`;
+
     return new Promise((resolve) => {
-        Papa.parse(path, {
+        Papa.parse(url, {
             download: true,
             header: true,
             dynamicTyping: true,
@@ -39,42 +44,26 @@ export function Vendedores() {
     });
   };
 
-  // --- (R)EAD: Cargar Datos ---
   const cargarDatos = async () => {
     try {
-      // Cargamos Vendedores y Distritos en paralelo
       const [dataVendedores, dataDistritos] = await Promise.all([
-        fetchCsvData('/data/vendedor.csv'),
-        fetchCsvData('/data/distrito.csv')
+        fetchCsvData('data/vendedor.csv'),
+        fetchCsvData('data/distrito.csv') 
       ]);
       
       setDistritos(dataDistritos);
 
-      // --- FUNCIÓN AUXILIAR PARA DISTRITO VISUAL ---
-      // Si no encuentra el ID exacto, elige uno al azar para que la tabla se vea bien
-      const getDistritoVisual = (idDistritoOriginal) => {
-          // 1. Buscar match exacto
-          const distritoReal = dataDistritos.find(d => String(d.codDistr) === String(idDistritoOriginal));
-          if (distritoReal) return distritoReal.nomDistr;
-
-          // 2. Si no existe o está vacío, devolver uno ALEATORIO
-          if (dataDistritos.length > 0) {
-              const randomIndex = Math.floor(Math.random() * dataDistritos.length);
-              return dataDistritos[randomIndex].nomDistr;
-          }
-          return "Sin Distrito";
-      };
-
-      // JOIN MANUAL: Unir Vendedor con Nombre de Distrito
       const vendedoresEnriquecidos = dataVendedores.map(v => {
+          const distrito = dataDistritos.find(d => String(d.codDistr) === String(v.idDistrVende));
           return {
               ...v,
               idVende: String(v.idVende),
-              // Usamos la función visual aquí:
-              nomDistr: getDistritoVisual(v.idDistrVende)
+              nomDistr: distrito ? distrito.nomDistr : 'Sin Distrito'
           };
       });
 
+      // Ordenar por ID si es posible
+      vendedoresEnriquecidos.sort((a, b) => Number(a.idVende) - Number(b.idVende));
       setVendedores(vendedoresEnriquecidos);
       
     } catch (error) {
@@ -86,15 +75,21 @@ export function Vendedores() {
     cargarDatos();
   }, []);
 
-  // --- (C)REATE y (U)PDATE (Simulado) ---
+  // --- LÓGICA DE PAGINACIÓN ---
+  const indiceUltimoItem = paginaActual * itemsPorPagina;
+  const indicePrimerItem = indiceUltimoItem - itemsPorPagina;
+  const vendedoresVisibles = vendedores.slice(indicePrimerItem, indiceUltimoItem);
+  const totalPaginas = Math.ceil(vendedores.length / itemsPorPagina);
+  const cambiarPagina = (n) => setPaginaActual(n);
+
+  // --- (C)REATE y (U)PDATE ---
   const handleSubmit = (e) => {
     e.preventDefault();
     
     const idParaGuardar = editingVendedor 
       ? editingVendedor.idVende 
-      : `VEND-${Date.now()}`; // ID temporal
+      : `VEND-${Date.now()}`; 
 
-    // Buscamos el nombre del distrito seleccionado para mostrarlo en la tabla
     const distritoObj = distritos.find(d => String(d.codDistr) === String(formData.idDistrVende));
 
     const datosVendedor = {
@@ -107,16 +102,13 @@ export function Vendedores() {
     };
 
     if (editingVendedor) {
-        // UPDATE
         setVendedores(vendedores.map(v => v.idVende === editingVendedor.idVende ? datosVendedor : v));
     } else {
-        // CREATE
         setVendedores([datosVendedor, ...vendedores]);
     }
       
     setIsOpen(false);
     limpiarFormulario();
-    alert("Proveedor guardado (Simulación en memoria)");
   };
 
   const handleEdit = (vendedor) => {
@@ -130,10 +122,13 @@ export function Vendedores() {
     setIsOpen(true);
   };
 
-  // --- (D)ELETE (Simulado) ---
   const handleDelete = (idVende) => {
     if (window.confirm('¿Estás seguro de que quieres eliminar este proveedor? (Visualmente)')) {
-       setVendedores(vendedores.filter(v => v.idVende !== idVende));
+       const nuevos = vendedores.filter(v => v.idVende !== idVende);
+       setVendedores(nuevos);
+       if (nuevos.slice(indicePrimerItem, indiceUltimoItem).length === 0 && paginaActual > 1) {
+           setPaginaActual(paginaActual - 1);
+       }
     }
   };
 
@@ -147,7 +142,9 @@ export function Vendedores() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-blue-900 text-4xl mb-2">Proveedores</h1>
-          <p className="text-gray-600">Gestión de vendedores (CSV Local)</p>
+          <p className="text-gray-600">
+            Gestión de vendedores (Mostrando {vendedoresVisibles.length} de {vendedores.length})
+          </p>
         </div>
         <div className="flex gap-2">
             <Button
@@ -173,6 +170,7 @@ export function Vendedores() {
                 <DialogTitle className="text-blue-900">
                     {editingVendedor ? 'Editar Proveedor' : 'Nuevo Proveedor'}
                 </DialogTitle>
+                <DialogDescription>Ingresa los datos del proveedor.</DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
@@ -203,7 +201,6 @@ export function Vendedores() {
                     </div>
                 </div>
                 
-                {/* SELECT DE DISTRITO */}
                 <div>
                     <Label htmlFor="idDistrVende">Distrito</Label>
                     <Select 
@@ -243,7 +240,7 @@ export function Vendedores() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {vendedores.map((vendedor) => (
+            {vendedoresVisibles.map((vendedor) => (
               <TableRow key={vendedor.idVende}>
                 <TableCell>{vendedor.idVende}</TableCell>
                 <TableCell className="text-blue-900 font-medium">{vendedor.nomVende}</TableCell>
@@ -269,6 +266,25 @@ export function Vendedores() {
           </TableBody>
         </Table>
       </div>
+
+      {vendedores.length > 0 && (
+          <div className="flex items-center justify-between bg-white px-4 py-3 border-t rounded-lg shadow">
+            <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-700">
+                    Mostrando <span className="font-medium">{indicePrimerItem + 1}</span> a <span className="font-medium">{Math.min(indiceUltimoItem, vendedores.length)}</span> de <span className="font-medium">{vendedores.length}</span> resultados
+                </span>
+            </div>
+            <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => cambiarPagina(paginaActual - 1)} disabled={paginaActual === 1} className="flex items-center gap-1">
+                    <ChevronLeft className="h-4 w-4" /> Ant.
+                </Button>
+                <span className="text-sm font-medium px-2 flex items-center">Pág {paginaActual}/{totalPaginas}</span>
+                <Button variant="outline" size="sm" onClick={() => cambiarPagina(paginaActual + 1)} disabled={paginaActual === totalPaginas} className="flex items-center gap-1">
+                    Sig. <ChevronRight className="h-4 w-4" />
+                </Button>
+            </div>
+          </div>
+      )}
     </div>
   );
 }

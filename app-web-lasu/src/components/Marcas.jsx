@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import Papa from 'papaparse'; // <--- Usamos PapaParse en lugar de Axios
+import Papa from 'papaparse';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
@@ -8,20 +8,21 @@ import { Label } from './ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 
 export function Marcas() {
-  // 1. El estado empieza vacío
   const [marcas, setMarcas] = useState([]);
 
   const [isOpen, setIsOpen] = useState(false);
   const [editingMarca, setEditingMarca] = useState(null);
   const [formData, setFormData] = useState({ nomMarca: '' });
 
-  // --- HELPER PARA LEER CSV ---
   const fetchCsvData = (path) => {
+    const relativePath = path.startsWith('/') ? path.slice(1) : path;
+    const url = `${import.meta.env.BASE_URL}${relativePath}`;
+    
     return new Promise((resolve) => {
-        Papa.parse(path, {
+        Papa.parse(url, {
             download: true,
             header: true,
-            dynamicTyping: true, // Convierte números automáticamente
+            dynamicTyping: true,
             skipEmptyLines: true,
             complete: (result) => resolve(result.data),
             error: (err) => {
@@ -32,11 +33,9 @@ export function Marcas() {
     });
   };
 
-  // --- (R)EAD: Cargar desde CSV ---
   const cargarMarcas = async () => {
     try {
-      const data = await fetchCsvData('/data/marca.csv');
-      // Aseguramos que el ID sea string para consistencia
+      const data = await fetchCsvData('data/marca.csv');
       const marcasProcesadas = data.map(m => ({
           ...m,
           idMarca: String(m.idMarca)
@@ -47,19 +46,17 @@ export function Marcas() {
     }
   };
 
-  // Carga las marcas la primera vez
   useEffect(() => {
     cargarMarcas();
   }, []);
 
-  // --- (C)REATE y (U)PDATE (Simulado) ---
   const handleSubmit = (e) => {
     e.preventDefault();
     const { nomMarca } = formData;
 
     const idParaGuardar = editingMarca 
       ? editingMarca.idMarca 
-      : `MAR-${Date.now()}`; // ID temporal simulado
+      : `MAR-${Date.now()}`;
 
     const nuevaMarca = {
         idMarca: idParaGuardar,
@@ -67,10 +64,8 @@ export function Marcas() {
     };
 
     if (editingMarca) {
-        // UPDATE
         setMarcas(marcas.map(m => m.idMarca === editingMarca.idMarca ? nuevaMarca : m));
     } else {
-        // CREATE
         setMarcas([...marcas, nuevaMarca]);
     }
       
@@ -100,7 +95,13 @@ export function Marcas() {
           <h1 className="text-blue-900 text-4xl mb-2">Marcas</h1>
           <p className="text-gray-600">Gestión de marcas (CSV Local)</p>
         </div>
-        <Dialog open={isOpen} onOpenChange={(open) => { if(!open) { setEditingMarca(null); setFormData({nomMarca:''}); } setIsOpen(open); }}>
+        <Dialog open={isOpen} onOpenChange={(open) => { 
+            if(!open) { 
+                setEditingMarca(null); 
+                setFormData({nomMarca:''}); 
+            } 
+            setIsOpen(open); 
+        }}>
           <DialogTrigger asChild>
             <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => {
               setEditingMarca(null);

@@ -23,8 +23,6 @@ export function Login({ onLogin }) {
     setSuccess(null);
 
     try {
-      // --- CORRECCIÓN CLAVE PARA GITHUB PAGES ---
-      // Usamos import.meta.env.BASE_URL para que sepa que está en una subcarpeta
       const response = await fetch(`${import.meta.env.BASE_URL}data/usuario.json`);
       
       if (!response.ok) {

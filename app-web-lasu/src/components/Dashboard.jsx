@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts';
 
 export function Dashboard() {
-  // --- ESTADOS PARA DATOS REALES (CSV) ---
   const [kpis, setKpis] = useState({
     ventasMes: 0,
     totalProductos: 0,
@@ -16,10 +15,12 @@ export function Dashboard() {
   const [recentSales, setRecentSales] = useState([]);
   const [topProducts, setTopProducts] = useState([]);
 
-  // --- CARGAR DATOS REALES DEL CSV ---
   const fetchCsvData = (path) => {
+    const relativePath = path.startsWith('/') ? path.slice(1) : path;
+    const url = `${import.meta.env.BASE_URL}${relativePath}`;
+
     return new Promise((resolve) => {
-        Papa.parse(path, {
+        Papa.parse(url, {
             download: true,
             header: true,
             dynamicTyping: true,
@@ -34,14 +35,13 @@ export function Dashboard() {
     const loadDashboardData = async () => {
       try {
         const [dataVentas, dataDetalles, dataProductos, dataClientes, dataVendedores] = await Promise.all([
-          fetchCsvData('/data/venta.csv'),
-          fetchCsvData('/data/detalle_venta.csv'),
-          fetchCsvData('/data/producto.csv'),
-          fetchCsvData('/data/cliente.csv'),
-          fetchCsvData('/data/vendedor.csv')
+          fetchCsvData('data/venta.csv'),
+          fetchCsvData('data/detalle_venta.csv'),
+          fetchCsvData('data/producto.csv'),
+          fetchCsvData('data/cliente.csv'),
+          fetchCsvData('data/vendedor.csv')
         ]);
 
-        // 1. CÁLCULO DE KPIs REALES
         const totalVentas = dataVentas.reduce((acc, curr) => acc + Number(curr.Total || 0), 0);
         
         setKpis({
@@ -52,8 +52,6 @@ export function Dashboard() {
           totalProveedores: dataVendedores.length
         });
 
-        // 2. VENTAS RECIENTES REALES (Últimas 4 con Nombre de Cliente)
-        // Primero ordenamos las ventas por ID numérico para obtener las últimas reales
         const ventasOrdenadas = [...dataVentas].sort((a, b) => {
              const idA = parseInt(String(a.idVenta).replace(/\D/g, '')) || 0;
              const idB = parseInt(String(b.idVenta).replace(/\D/g, '')) || 0;
@@ -61,16 +59,13 @@ export function Dashboard() {
         });
 
         const ultimasVentas = ventasOrdenadas.slice(0, 4).map(v => {
-            // --- AQUÍ ESTÁ LA CORRECCIÓN ---
-            // Buscamos el cliente en el array dataClientes usando el idCliente de la venta
+            // Buscamos el cliente en el array dataClientes
             const clienteEncontrado = dataClientes.find(c => String(c.idCliente) === String(v.idCliente));
-            
-            // Si lo encuentra usa el nombre, si no, usa "Cliente Desconocido"
             const nombreMostrar = clienteEncontrado ? clienteEncontrado.nomCliente : (v.nombreCliente || 'Cliente Desconocido');
 
             return {
                 id: v.idVenta,
-                cliente: nombreMostrar, // Nombre real del CSV clientes
+                cliente: nombreMostrar,
                 producto: 'Varios Productos', 
                 cantidad: 1,
                 total: Number(v.Total).toFixed(2),
@@ -79,7 +74,6 @@ export function Dashboard() {
         });
         setRecentSales(ultimasVentas);
 
-        // 3. PRODUCTOS MÁS VENDIDOS REALES
         const conteoProductos = {};
         dataDetalles.forEach(d => {
             if (conteoProductos[d.nomProduc]) {
@@ -104,7 +98,6 @@ export function Dashboard() {
     loadDashboardData();
   }, []);
 
-  // --- DATOS VISUALES PARA PREDICCIONES (MOCK / SIMULADOS) ---
   const ventasPrediccion = [
     { mes: 'Jun', ventasReales: 32400, prediccion: null },
     { mes: 'Jul', ventasReales: 35200, prediccion: null },
@@ -213,7 +206,7 @@ export function Dashboard() {
                   <YAxis />
                   <Tooltip formatter={(value) => `S/ ${value?.toLocaleString()}`} contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc' }} />
                   <Legend />
-                  <Area type="monotone" dataKey="ventasReales" stroke="#1e40af" fill="#3b82f6" name="Ventas Reales" />
+                  <Area type="monotone" dataKey="ventasReales" stroke="#1e40af" fill="#3b82f6" name="Ventas" />
                   <Area type="monotone" dataKey="prediccion" stroke="#f59e0b" fill="#fbbf24" strokeDasharray="5 5" name="Predicción IA" />
                 </AreaChart>
               </ResponsiveContainer>
@@ -291,11 +284,10 @@ export function Dashboard() {
         </Card>
       </div>
 
-      {/* VENTAS RECIENTES Y TOP PRODUCTOS (DATOS REALES) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-blue-900">Ventas Recientes (Real)</CardTitle>
+            <CardTitle className="text-blue-900">Ventas Recientes</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -318,7 +310,7 @@ export function Dashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-blue-900">Productos Más Vendidos (Real)</CardTitle>
+            <CardTitle className="text-blue-900">Productos Más Vendidos</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">

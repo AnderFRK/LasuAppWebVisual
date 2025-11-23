@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-// import axios from 'axios'; <--- Ya no lo necesitamos
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
@@ -13,14 +12,15 @@ export function Usuarios() {
   const [editingUsuario, setEditingUsuario] = useState(null);
   const [formData, setFormData] = useState({ nombreUsu: '', contraseñaUsu: '' });
 
-  // --- (R)EAD: Cargar usuarios desde JSON local ---
+  // --- (R)EAD: Cargar usuarios desde JSON local (Corregido para GitHub Pages) ---
   const cargarUsuarios = async () => {
     try {
-      // Leemos el archivo local en public/data/usuario.json
-      const respuesta = await fetch('/data/usuario.json');
-      if (!respuesta.ok) throw new Error("No se pudo leer el archivo JSON");
+      // CORRECCIÓN: Usamos import.meta.env.BASE_URL para la ruta correcta en deploy
+      const response = await fetch(`${import.meta.env.BASE_URL}data/usuario.json`);
       
-      const data = await respuesta.json();
+      if (!response.ok) throw new Error("No se pudo leer el archivo JSON");
+      
+      const data = await response.json();
       setUsuarios(data);
     } catch (error) {
       console.error('Error al cargar los usuarios:', error);

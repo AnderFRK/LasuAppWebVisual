@@ -15,9 +15,8 @@ export function Pagos() {
   const [pagos, setPagos] = useState([]);
   const [ventasPendientes, setVentasPendientes] = useState([]);
   const [metodos, setMetodos] = useState([]);
-  const [clientes, setClientes] = useState([]); // Guardamos clientes para uso general
+  const [clientes, setClientes] = useState([]);
   
-  // Dashboard
   const [totalHoy, setTotalHoy] = useState(0);
   const [totalMes, setTotalMes] = useState(0);
   
@@ -30,44 +29,47 @@ export function Pagos() {
   });
   const [ventaSeleccionada, setVentaSeleccionada] = useState(null);
 
-  // --- HELPER PARA LEER CSV ---
   const fetchCsvData = (path) => {
+    const relativePath = path.startsWith('/') ? path.slice(1) : path;
+    const url = `${import.meta.env.BASE_URL}${relativePath}`;
+
     return new Promise((resolve) => {
-        Papa.parse(path, {
+        Papa.parse(url, {
             download: true,
             header: true,
             dynamicTyping: true,
             skipEmptyLines: true,
             complete: (result) => resolve(result.data),
-            error: () => resolve([])
+            error: (err) => {
+                console.error("Error leyendo CSV:", err);
+                resolve([]);
+            }
         });
     });
   };
 
-  // --- CARGAR Y PROCESAR DATOS ---
   const cargarDatos = async () => {
     try {
       const [dataPagos, dataVentas, dataClientes, dataMetodos] = await Promise.all([
-        fetchCsvData('/data/pago.csv'),
-        fetchCsvData('/data/venta.csv'),
-        fetchCsvData('/data/cliente.csv'),
-        fetchCsvData('/data/metodo_pago.csv')
+        fetchCsvData('data/pago.csv'),
+        fetchCsvData('data/venta.csv'),
+        fetchCsvData('data/cliente.csv'),
+        fetchCsvData('data/metodo_pago.csv')
       ]);
 
       setMetodos(dataMetodos);
       setClientes(dataClientes);
 
-      // Función auxiliar para obtener cliente aleatorio si falla el match
       const getClienteVisual = (idClienteOriginal) => {
-          // 1. Intentar buscar match exacto
           const clienteReal = dataClientes.find(c => String(c.idCliente) === String(idClienteOriginal));
+          
           if (clienteReal) return clienteReal.nomCliente;
 
-          // 2. Si no existe (ej: ID 500 pero solo hay 200 clientes), devolver uno ALEATORIO
           if (dataClientes.length > 0) {
               const randomIndex = Math.floor(Math.random() * dataClientes.length);
               return dataClientes[randomIndex].nomCliente;
           }
+          
           return "Cliente Desconocido";
       };
 
@@ -75,12 +77,12 @@ export function Pagos() {
       const pagosEnriquecidos = dataPagos.map(p => {
           const venta = dataVentas.find(v => String(v.idVenta) === String(p.idVenta));
           
-          // Obtenemos nombre usando la lógica visual (Real o Aleatorio)
+          // Aquí aplicamos la lógica visual
           let nombreCliente = 'Desconocido';
           if (venta) {
               nombreCliente = getClienteVisual(venta.idCliente);
           } else {
-              // Si el pago no tiene venta asociada, también asignamos un cliente aleatorio para que se vea bien
+              // Si el pago está huérfano (sin venta), asignamos un cliente aleatorio también
               if (dataClientes.length > 0) {
                   nombreCliente = dataClientes[Math.floor(Math.random() * dataClientes.length)].nomCliente;
               }
@@ -110,7 +112,7 @@ export function Pagos() {
               const saldo = Number(venta.Total) - totalPagado;
 
               if (saldo > 0.1) {
-                  // Aquí también aplicamos la lógica visual para el Dropdown
+                  // Usamos el mismo truco visual para el dropdown
                   const nombre = getClienteVisual(venta.idCliente);
                   
                   pendientes.push({
@@ -325,7 +327,7 @@ export function Pagos() {
                 <TableCell>{pago.idPago}</TableCell>
                 <TableCell className="font-medium text-xs">{pago.idVenta}</TableCell>
                 <TableCell>{pago.fechaPago}</TableCell>
-                <TableCell className="text-blue-900">{pago.nombreCliente}</TableCell>
+                <TableCell className="text-blue-900 font-medium">{pago.nombreCliente}</TableCell>
                 <TableCell className="font-bold">S/ {Number(pago.montoPago).toFixed(2)}</TableCell>
                 <TableCell>
                   <Badge variant="outline">{pago.nombreMetodo}</Badge>

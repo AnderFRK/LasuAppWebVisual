@@ -2,14 +2,7 @@ import { useState, useEffect } from 'react';
 import Papa from 'papaparse';
 import { Plus, Eye, Trash2, XCircle, ShoppingCart, Pencil, FileDown, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './ui/button';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger,
-  DialogDescription
-} from './ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from './ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Badge } from './ui/badge';
 import { Input } from './ui/input';
@@ -46,7 +39,6 @@ export function Ventas() {
   ];
   
   const [itemsVenta, setItemsVenta] = useState([]);
-  
   const [formData, setFormData] = useState({
     idCliente: '',
     Fecha_Venta: getFechaDeHoy(),
@@ -54,15 +46,17 @@ export function Ventas() {
     montoPagadoInicial: 0,
     idMetodoPago: ''
   });
-  
   const [itemActual, setItemActual] = useState('');
   const [cantidadActual, setCantidadActual] = useState(1);
   const [precioActual, setPrecioActual] = useState(0);
 
-  // --- FUNCIÓN HELPER CSV ---
+  // --- HELPER PARA LEER CSV (CORREGIDO PARA GITHUB PAGES) ---
   const fetchCsvData = (path) => {
+    const relativePath = path.startsWith('/') ? path.slice(1) : path;
+    const url = `${import.meta.env.BASE_URL}${relativePath}`;
+    
     return new Promise((resolve) => {
-        Papa.parse(path, {
+        Papa.parse(url, {
             download: true,
             header: true,
             dynamicTyping: true, 
@@ -76,35 +70,46 @@ export function Ventas() {
     });
   };
 
-  // --- CARGAR DATOS (CORREGIDO PARA EVITAR CRASH) ---
+  // --- CARGAR DATOS ---
   const cargarDatos = async () => {
     try {
       const [dataVentas, dataClientes, dataProductos, dataDetalles] = await Promise.all([
-        fetchCsvData('/data/venta.csv'),
-        fetchCsvData('/data/cliente.csv'),
-        fetchCsvData('/data/producto.csv'),
-        fetchCsvData('/data/detalle_venta.csv')
+        fetchCsvData('data/venta.csv'),
+        fetchCsvData('data/cliente.csv'),
+        fetchCsvData('data/producto.csv'),
+        fetchCsvData('data/detalle_venta.csv')
       ]);
 
       setClientes(dataClientes);
       setProductos(dataProductos);
       setAllDetalles(dataDetalles);
 
-      // Enriquecer datos (JOIN) y Convertir ID a String
+      // Enriquecer datos (JOIN INTELIGENTE)
       const ventasEnriquecidas = dataVentas.map(v => {
-          const cliente = dataClientes.find(c => c.idCliente === v.idCliente);
-          const metodo = metodosPago.find(m => m.idMetodoPago === v.idMetodoPago);
+          // 1. Intentamos buscar el cliente por ID
+          const cliente = dataClientes.find(c => String(c.idCliente) === String(v.idCliente));
+          
+          // 2. Si el CSV de ventas ya trae el nombre, usamos ese. Si no, usamos el del cruce.
+          const nombreFinal = v.nombreCliente || (cliente ? cliente.nomCliente : 'Cliente Desconocido');
+
+          const metodo = metodosPago.find(m => String(m.idMetodoPago) === String(v.idMetodoPago));
+          const nombreMetodoFinal = v.nombreMetodo || (metodo ? metodo.nomMetodoPago : 'Desconocido');
           
           return {
               ...v,
-              idVenta: String(v.idVenta), // <--- CRUCIAL: Convierte a texto para que .slice() no falle
-              nombreCliente: cliente ? cliente.nomCliente : 'Cliente Desconocido',
-              nombreMetodo: metodo ? metodo.nomMetodoPago : 'Desconocido'
+              idVenta: String(v.idVenta), // Convertir a string para evitar errores con .slice()
+              nombreCliente: nombreFinal,
+              nombreMetodo: nombreMetodoFinal
           };
       });
 
-      // Ordenar por ID descendente
-      ventasEnriquecidas.sort((a, b) => Number(b.idVenta) - Number(a.idVenta));
+      // Ordenar por ID descendente (numérico)
+      ventasEnriquecidas.sort((a, b) => {
+          const idA = parseInt(String(a.idVenta).replace(/\D/g, '')) || 0;
+          const idB = parseInt(String(b.idVenta).replace(/\D/g, '')) || 0;
+          return idB - idA;
+      });
+
       setVentas(ventasEnriquecidas);
 
     } catch (error) {
@@ -127,23 +132,19 @@ export function Ventas() {
   // --- VER DETALLE ---
   const handleVerDetalle = (venta) => {
     setVentaActual(venta);
-    
-    // Filtramos detalles usando comparación flexible (==) por si uno es string y otro number
     const detallesDeEstaVenta = allDetalles.filter(d => String(d.idVenta) === String(venta.idVenta));
-    
     const detallesConNombre = detallesDeEstaVenta.map(d => {
-        const prod = productos.find(p => p.idProduc === d.idProduc);
+        const prod = productos.find(p => String(p.idProduc) === String(d.idProduc));
         return {
             ...d,
-            nomProduc: prod ? prod.nomProduc : 'Producto Eliminado'
+            nomProduc: prod ? prod.nomProduc : (d.nomProduc || 'Producto Eliminado')
         };
     });
-
     setDetalleVenta(detallesConNombre);
     setIsDetalleModalOpen(true);
   };
 
-  // --- DELETE (Simulado) ---
+  // --- DELETE ---
   const handleDeleteVenta = (idVenta) => {
     if (window.confirm('¿Eliminar venta? (Visualmente)')) {
        setVentas(ventas.filter(v => v.idVenta !== idVenta));
@@ -168,7 +169,6 @@ export function Ventas() {
     setEditingVenta(null);
   };
 
-  // --- PREPARAR EDICIÓN ---
   const handleEditarVenta = (venta) => {
     setEditingVenta(venta);
     setFormData({
@@ -181,17 +181,16 @@ export function Ventas() {
     
     const detalles = allDetalles.filter(d => String(d.idVenta) === String(venta.idVenta));
     const itemsMapeados = detalles.map(d => {
-        const prod = productos.find(p => p.idProduc === d.idProduc);
-        return { ...d, nomProduc: prod ? prod.nomProduc : 'Item' };
+        const prod = productos.find(p => String(p.idProduc) === String(d.idProduc));
+        return { ...d, nomProduc: prod ? prod.nomProduc : (d.nomProduc || 'Item') };
     });
     
     setItemsVenta(itemsMapeados);
     setIsFormModalOpen(true);
   };
 
-  // --- LÓGICA FORMULARIO ---
   const handleProductoSelect = (idProduc) => {
-    const producto = productos.find(p => p.idProduc === Number(idProduc));
+    const producto = productos.find(p => String(p.idProduc) === idProduc);
     if (producto) {
       setItemActual(producto);
       setPrecioActual(producto.precioProduc); 
@@ -202,11 +201,6 @@ export function Ventas() {
     if (!itemActual || cantidadActual <= 0) {
       alert("Datos inválidos.");
       return;
-    }
-    // Validación Stock Simulado (Opcional, si el CSV tiene stock)
-    if (itemActual.Stock !== undefined && itemActual.Stock < cantidadActual) {
-        alert(`Stock insuficiente: ${itemActual.Stock}`);
-        return;
     }
     
     const subtotal = Number(cantidadActual) * Number(precioActual);
@@ -223,7 +217,7 @@ export function Ventas() {
   };
   
   const handleRemoveItem = (idProduc) => {
-    setItemsVenta(itemsVenta.filter(i => i.idProduc !== idProduc));
+    setItemsVenta(itemsVenta.filter(i => String(i.idProduc) !== String(idProduc)));
   };
 
   const calcularTotal = () => {
@@ -236,17 +230,16 @@ export function Ventas() {
     }
   }, [itemsVenta, formData.tipoVenta]);
 
-  // --- GUARDAR (Simulado) ---
   const handleSubmitVenta = (e) => {
     e.preventDefault();
     if (!formData.idCliente || itemsVenta.length === 0) return;
 
     const totalVenta = calcularTotal();
-    const clienteObj = clientes.find(c => c.idCliente == formData.idCliente);
-    const metodoObj = metodosPago.find(m => m.idMetodoPago == formData.idMetodoPago);
+    const clienteObj = clientes.find(c => String(c.idCliente) === formData.idCliente);
+    const metodoObj = metodosPago.find(m => String(m.idMetodoPago) === formData.idMetodoPago);
 
     const nuevaVenta = {
-      idVenta: editingVenta ? editingVenta.idVenta : String(ventas.length + 1001),
+      idVenta: editingVenta ? editingVenta.idVenta : `VENTA-${Date.now()}`,
       idCliente: Number(formData.idCliente),
       Fecha_Venta: formData.Fecha_Venta,
       Total: totalVenta,
@@ -260,12 +253,11 @@ export function Ventas() {
 
     if (editingVenta) {
       setVentas(ventas.map(v => v.idVenta === editingVenta.idVenta ? nuevaVenta : v));
-      // Actualizar detalles en memoria (borrar viejos, poner nuevos)
       const otrosDetalles = allDetalles.filter(d => String(d.idVenta) !== String(editingVenta.idVenta));
       const nuevosDetalles = itemsVenta.map(item => ({ ...item, idVenta: editingVenta.idVenta }));
       setAllDetalles([...otrosDetalles, ...nuevosDetalles]);
     } else {
-      setVentas([nuevaVenta, ...ventas]);
+      setVentas([nuevaVenta, ...ventas]); 
       const nuevosDetalles = itemsVenta.map(item => ({ ...item, idVenta: nuevaVenta.idVenta }));
       setAllDetalles([...allDetalles, ...nuevosDetalles]);
     }
@@ -302,7 +294,7 @@ export function Ventas() {
             }}
           >
             <FileDown className="h-4 w-4 mr-2" />
-            Generar Excel
+            Excel
           </Button>
           
           <Dialog open={isFormModalOpen} onOpenChange={(open) => { if(!open) limpiarFormulario(); setIsFormModalOpen(open); }}>
@@ -404,6 +396,7 @@ export function Ventas() {
               <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
+          {/* LISTA PAGINADA */}
           <TableBody>
             {ventasVisibles.map((venta) => (
               <TableRow key={venta.idVenta}>
@@ -453,7 +446,7 @@ export function Ventas() {
           </div>
       )}
 
-      {/* MODAL DETALLE CON CORRECCIÓN */}
+      {/* MODAL DETALLE */}
       <Dialog open={isDetalleModalOpen} onOpenChange={(open) => {if(!open) setVentaActual(null); setIsDetalleModalOpen(open);}}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
@@ -479,7 +472,6 @@ export function Ventas() {
                    </TableBody>
                </Table>
                
-               {/* BOTÓN PDF CORREGIDO */}
                {ventaActual && detalleVenta.length > 0 && (
                    <div className="mt-4">
                         <PDFDownloadLink document={<GuiaVentaPDF venta={ventaActual} detalle={detalleVenta} />} fileName={`Boleta-${ventaActual.idVenta}.pdf`}>

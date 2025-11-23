@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import Papa from 'papaparse';
-import { Plus, Eye, Trash2, XCircle, ShoppingCart, Pencil, ChevronLeft, ChevronRight } from 'lucide-react'; // <-- Agregados Chevrons
+import { Plus, Eye, Trash2, XCircle, ShoppingCart, Pencil, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from './ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
@@ -35,9 +35,12 @@ export function Compras() {
   const [cantidadActual, setCantidadActual] = useState(1);
   const [precioActual, setPrecioActual] = useState(0);
 
+  // --- HELPER PARA LEER CSV (Con fix para GitHub Pages) ---
   const fetchCsvData = (path) => {
+    const relativePath = path.startsWith('/') ? path.slice(1) : path;
+    const url = `${import.meta.env.BASE_URL}${relativePath}`;
     return new Promise((resolve) => {
-        Papa.parse(path, {
+        Papa.parse(url, {
             download: true,
             header: true,
             dynamicTyping: true,
@@ -51,19 +54,21 @@ export function Compras() {
     });
   };
 
+  // --- CARGAR DATOS ---
   const cargarDatos = async () => {
     try {
       const [dataCompras, dataDetalles, dataVendedores, dataProductos] = await Promise.all([
-        fetchCsvData('/data/compras.csv'),
-        fetchCsvData('/data/detalle_compra.csv'),
-        fetchCsvData('/data/vendedor.csv'),
-        fetchCsvData('/data/producto.csv')
+        fetchCsvData('data/compras.csv'),
+        fetchCsvData('data/detalle_compra.csv'),
+        fetchCsvData('data/vendedor.csv'),
+        fetchCsvData('data/producto.csv')
       ]);
 
       setAllDetalles(dataDetalles);
       setProveedores(dataVendedores);
       setProductos(dataProductos);
 
+      // ENRIQUECER COMPRAS (JOIN MANUAL)
       const comprasEnriquecidas = dataCompras.map(c => {
           const vendedor = dataVendedores.find(v => String(v.idVende) === String(c.idVende));
           return {
@@ -73,13 +78,13 @@ export function Compras() {
           };
       });
 
+      // Ordenar por ID descendente
       comprasEnriquecidas.sort((a, b) => {
-         const numA = parseInt(a.idCompra.replace(/\D/g, '')) || 0;
-         const numB = parseInt(b.idCompra.replace(/\D/g, '')) || 0;
+         const numA = parseInt(String(a.idCompra).replace(/\D/g, '')) || 0;
+         const numB = parseInt(String(b.idCompra).replace(/\D/g, '')) || 0;
          return numB - numA; 
       });
 
-      // YA NO cortamos aquí con .slice(0, 20) porque la paginación se encargará de eso
       setCompras(comprasEnriquecidas);
 
     } catch (error) {
@@ -94,12 +99,13 @@ export function Compras() {
   // --- LÓGICA DE PAGINACIÓN ---
   const indiceUltimoItem = paginaActual * itemsPorPagina;
   const indicePrimerItem = indiceUltimoItem - itemsPorPagina;
-  // Esto corta el array GRANDE para mostrar solo el trozo actual
+  // Esto corta el array para mostrar solo 20 a la vez
   const comprasVisibles = compras.slice(indicePrimerItem, indiceUltimoItem); 
   const totalPaginas = Math.ceil(compras.length / itemsPorPagina);
 
   const cambiarPagina = (numeroPagina) => setPaginaActual(numeroPagina);
 
+  // --- VER DETALLE ---
   const handleVerDetalle = (compra) => {
     setCompraActual(compra);
     const detallesFiltrados = allDetalles.filter(d => String(d.idCompra) === String(compra.idCompra));
@@ -107,13 +113,14 @@ export function Compras() {
         const prod = productos.find(p => String(p.idProduc) === String(d.idProduc));
         return {
             ...d,
-            nomProduc: prod ? prod.nomProduc : 'Producto'
+            nomProduc: prod ? prod.nomProduc : 'Producto Eliminado'
         };
     });
     setDetalleCompra(detallesConNombre);
     setIsDetalleModalOpen(true);
   };
 
+  // --- ELIMINAR (Simulado) ---
   const handleDeleteCompra = (idCompra) => {
     if (window.confirm('¿Estás seguro de que quieres eliminar esta compra? (Visualmente)')) {
        setCompras(compras.filter(c => c.idCompra !== idCompra));
@@ -157,6 +164,7 @@ export function Compras() {
     const producto = productos.find(p => String(p.idProduc) === idProduc);
     if (producto) {
       setItemActual(producto);
+      // Sugerir costo (ej. 60% del precio de venta)
       const costoEstimado = producto.precioProduc ? (producto.precioProduc * 0.6) : 0;
       setPrecioActual(Number(costoEstimado).toFixed(2)); 
     }
@@ -201,7 +209,7 @@ export function Compras() {
   const handleSubmitCompra = (e) => {
     e.preventDefault();
     if (!proveedorSeleccionado || itemsCompra.length === 0) {
-      alert("Faltan datos.");
+      alert("Faltan datos (Proveedor o Productos).");
       return;
     }
 
@@ -209,7 +217,7 @@ export function Compras() {
     const vendedorObj = proveedores.find(v => String(v.idVende) === proveedorSeleccionado);
 
     const nuevaCompra = {
-      idCompra: editingCompra ? editingCompra.idCompra : `COMPRA-NUEVA-${Date.now()}`,
+      idCompra: editingCompra ? editingCompra.idCompra : `COMPRA-${Date.now()}`,
       idVende: proveedorSeleccionado,
       Fecha_Compra: fechaCompra,
       Total: totalCalculado,
@@ -226,7 +234,7 @@ export function Compras() {
         }));
         setAllDetalles([...otrosDetalles, ...nuevosDetalles]);
     } else {
-        setCompras([nuevaCompra, ...compras]); // Añadimos al principio del array global
+        setCompras([nuevaCompra, ...compras]); 
         const nuevosDetalles = itemsCompra.map(item => ({
             ...item,
             idCompra: nuevaCompra.idCompra,

@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
 import Papa from 'papaparse';
-import { Plus, Pencil, Trash2, FileDown, ChevronLeft, ChevronRight } from 'lucide-react'; 
+import { Plus, Pencil, Trash2, FileDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './ui/button';
 import { 
   Dialog, 
   DialogContent, 
   DialogHeader, 
   DialogTitle, 
-  DialogTrigger,
   DialogDescription 
 } from './ui/dialog';
 import { Input } from './ui/input';
@@ -17,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import * as XLSX from 'xlsx';
 
 export function Clientes() {
-  const [clientes, setClientes] = useState([]); 
+  const [clientes, setClientes] = useState([]);
   const [distritos, setDistritos] = useState([]); 
 
   const [paginaActual, setPaginaActual] = useState(1);
@@ -35,15 +34,18 @@ export function Clientes() {
   });
 
   const fetchCsvData = (path) => {
+    const relativePath = path.startsWith('/') ? path.slice(1) : path;
+    const url = `${import.meta.env.BASE_URL}${relativePath}`;
+
     return new Promise((resolve) => {
-        Papa.parse(path, {
+        Papa.parse(url, {
             download: true,
             header: true,
             dynamicTyping: true, 
             skipEmptyLines: true,
             complete: (result) => resolve(result.data),
             error: (err) => {
-                console.error("Error leyendo " + path, err);
+                console.error("Error leyendo CSV:", err);
                 resolve([]);
             }
         });
@@ -53,13 +55,12 @@ export function Clientes() {
   const cargarDatos = async () => {
     try {
       const [dataClientes, dataDistritos] = await Promise.all([
-        fetchCsvData('/data/cliente.csv'),
-        fetchCsvData('/data/distrito.csv') 
+        fetchCsvData('data/cliente.csv'),
+        fetchCsvData('data/distrito.csv') 
       ]);
       
       setDistritos(dataDistritos);
 
-      // HACEMOS EL "JOIN" MANUAL
       const clientesEnriquecidos = dataClientes.map(c => {
           const distrito = dataDistritos.find(d => String(d.codDistr) === String(c.idDistrCliente));
           return {
@@ -81,15 +82,14 @@ export function Clientes() {
     cargarDatos();
   }, []);
 
-  // --- LÓGICA DE PAGINACIÓN ---
   const indiceUltimoItem = paginaActual * itemsPorPagina;
   const indicePrimerItem = indiceUltimoItem - itemsPorPagina;
-  // Solo mostramos los clientes que tocan en esta página
   const clientesVisibles = clientes.slice(indicePrimerItem, indiceUltimoItem);
   const totalPaginas = Math.ceil(clientes.length / itemsPorPagina);
 
   const cambiarPagina = (numeroPagina) => setPaginaActual(numeroPagina);
 
+  // --- (C)REATE y (U)PDATE ---
   const handleSubmit = (e) => {
     e.preventDefault();
     
@@ -175,12 +175,10 @@ export function Clientes() {
             </Button>
 
             <Dialog open={isOpen} onOpenChange={(open) => { if(!open) limpiarFormulario(); setIsOpen(open); }}>
-            <DialogTrigger asChild>
-                <Button className="bg-blue-600 hover:bg-blue-700">
+            <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => setIsOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Nuevo Cliente
-                </Button>
-            </DialogTrigger>
+            </Button>
             <DialogContent className="max-w-2xl">
                 <DialogHeader>
                 <DialogTitle className="text-blue-900">

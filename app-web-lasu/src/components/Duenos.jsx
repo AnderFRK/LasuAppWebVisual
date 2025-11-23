@@ -8,7 +8,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Textarea } from './ui/textarea';
 
 export function Duenos() {
-  // 1. Estado inicial vacío
   const [duenos, setDuenos] = useState([]);
 
   const [isOpen, setIsOpen] = useState(false);
@@ -23,7 +22,8 @@ export function Duenos() {
 
   const cargarDuenos = async () => {
     try {
-      const respuesta = await fetch('/data/dueno.json');
+      const respuesta = await fetch(`${import.meta.env.BASE_URL}data/dueno.json`);
+      
       if (!respuesta.ok) throw new Error("No se pudo leer el archivo JSON");
       
       const data = await respuesta.json();
@@ -42,7 +42,7 @@ export function Duenos() {
     
     const idParaGuardar = editingDueno 
       ? editingDueno.idDueno 
-      : `DUENO-${Date.now()}`; // ID temporal simulado
+      : `DUENO-${Date.now()}`;
 
     const datosDueno = {
       ...formData,
@@ -89,7 +89,7 @@ export function Duenos() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-blue-900 text-4xl mb-2">Dueños</h1>
-          <p className="text-gray-600">Información del dueño</p>
+          <p className="text-gray-600">Información del dueño (JSON Local)</p>
         </div>
         <Dialog open={isOpen} onOpenChange={(open) => {
             if (!open) {

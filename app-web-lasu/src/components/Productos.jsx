@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import Papa from 'papaparse'; // <--- Usamos PapaParse
-import { Plus, Pencil, Trash2, FileDown } from 'lucide-react';
+import Papa from 'papaparse';
+import { Plus, Pencil, Trash2, FileDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from './ui/dialog';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
@@ -12,12 +12,15 @@ import * as XLSX from 'xlsx';
 
 export function Productos() {
   const [productos, setProductos] = useState([]);
-  const [categorias, setCategorias] = useState([]); // Se llenará leyendo el CSV de productos
+  const [categorias, setCategorias] = useState([]);
+  
+  // --- PAGINACIÓN ---
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [itemsPorPagina] = useState(20);
 
   const [isOpen, setIsOpen] = useState(false);
   const [editingProducto, setEditingProducto] = useState(null);
   
-  // Formulario adaptado a tus columnas
   const [formData, setFormData] = useState({ 
     nomProduc: '', 
     categoria: '', 
@@ -25,13 +28,15 @@ export function Productos() {
     Stock: 0
   });
 
-  // --- LEER CSV ---
+  // --- HELPER CSV (CORREGIDO PARA GITHUB PAGES) ---
   const fetchCsvData = (path) => {
+    const relativePath = path.startsWith('/') ? path.slice(1) : path;
+    const url = `${import.meta.env.BASE_URL}${relativePath}`;
     return new Promise((resolve) => {
-        Papa.parse(path, {
+        Papa.parse(url, {
             download: true,
             header: true,
-            dynamicTyping: true, // Convierte números automáticamente
+            dynamicTyping: true,
             skipEmptyLines: true,
             complete: (result) => resolve(result.data),
             error: (err) => {
@@ -42,24 +47,19 @@ export function Productos() {
     });
   };
 
-  // --- (R)EAD: Cargar Datos ---
   const cargarDatos = async () => {
     try {
-      const dataProductos = await fetchCsvData('/data/producto.csv');
+      const dataProductos = await fetchCsvData('data/producto.csv');
       
-      // 1. Guardamos los productos
-      // Nos aseguramos que el ID sea texto para evitar problemas
       const productosProcesados = dataProductos.map(p => ({
           ...p,
           idProduc: String(p.idProduc)
       }));
       
-      // Ordenar por ID numérico inverso si es posible
       productosProcesados.sort((a, b) => Number(b.idProduc) - Number(a.idProduc));
       setProductos(productosProcesados);
 
-      // 2. Extraer Categorías Únicas del propio CSV
-      // Esto crea la lista del Dropdown automáticamente basada en lo que hay en el archivo
+      // Extraer categorías únicas
       const categoriasUnicas = [...new Set(productosProcesados.map(p => p.categoria))].filter(Boolean);
       setCategorias(categoriasUnicas.sort());
 
@@ -72,13 +72,20 @@ export function Productos() {
     cargarDatos();
   }, []);
 
-  // --- (C)REATE y (U)PDATE ---
+  // --- LÓGICA PAGINACIÓN ---
+  const indiceUltimoItem = paginaActual * itemsPorPagina;
+  const indicePrimerItem = indiceUltimoItem - itemsPorPagina;
+  const productosVisibles = productos.slice(indicePrimerItem, indiceUltimoItem);
+  const totalPaginas = Math.ceil(productos.length / itemsPorPagina);
+  const cambiarPagina = (n) => setPaginaActual(n);
+
+  // --- CRUD ---
   const handleSubmit = (e) => {
     e.preventDefault();
     
     const idParaGuardar = editingProducto 
       ? editingProducto.idProduc 
-      : String(productos.length + 1001); // ID Simulado
+      : String(productos.length + 1001);
 
     const datosProducto = {
       idProduc: idParaGuardar,
@@ -89,13 +96,9 @@ export function Productos() {
     };
 
     if (editingProducto) {
-      // UPDATE
       setProductos(productos.map(p => p.idProduc === editingProducto.idProduc ? datosProducto : p));
     } else {
-      // CREATE
       setProductos([datosProducto, ...productos]);
-      
-      // Si la categoría es nueva, la agregamos a la lista de opciones
       if (!categorias.includes(formData.categoria)) {
           setCategorias([...categorias, formData.categoria].sort());
       }
@@ -121,10 +124,14 @@ export function Productos() {
       setFormData({ nomProduc: '', categoria: '', precioProduc: 0, Stock: 0 });
   }
 
-  // --- (D)ELETE ---
   const handleDelete = (idProduc) => {
     if (window.confirm('¿Eliminar producto? (Solo visualmente)')) {
-       setProductos(productos.filter(p => p.idProduc !== idProduc));
+       const nuevosProds = productos.filter(p => p.idProduc !== idProduc);
+       setProductos(nuevosProds);
+       // Ajustar página si se vacía
+       if (nuevosProds.slice(indicePrimerItem, indiceUltimoItem).length === 0 && paginaActual > 1) {
+           setPaginaActual(paginaActual - 1);
+       }
     }
   };
 
@@ -161,6 +168,7 @@ export function Productos() {
                 <DialogTitle className="text-blue-900">
                     {editingProducto ? 'Editar Producto' : 'Nuevo Producto'}
                 </DialogTitle>
+                <DialogDescription>Información del producto.</DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
@@ -173,7 +181,6 @@ export function Productos() {
                     />
                 </div>
                 
-                {/* SELECTOR DE CATEGORÍA (Generado dinámicamente del CSV) */}
                 <div className="grid grid-cols-2 gap-4">
                     <div>
                         <Label htmlFor="categoria">Categoría</Label>
@@ -192,7 +199,6 @@ export function Productos() {
                         </Select>
                     </div>
                     
-                    {/* INPUT DE STOCK */}
                     <div>
                         <Label htmlFor="Stock">Stock</Label>
                         <Input
@@ -240,10 +246,10 @@ export function Productos() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {productos.map((producto) => (
+            {productosVisibles.map((producto) => (
               <TableRow key={producto.idProduc}>
                 <TableCell>{producto.idProduc}</TableCell>
-                <TableCell className="text-blue-900">{producto.nomProduc}</TableCell>
+                <TableCell className="text-blue-900 font-medium">{producto.nomProduc}</TableCell>
                 <TableCell><Badge variant="outline">{producto.categoria}</Badge></TableCell>
                 <TableCell>S/ {Number(producto.precioProduc).toFixed(2)}</TableCell>
                 <TableCell>{producto.Stock}</TableCell>
@@ -271,6 +277,19 @@ export function Productos() {
           </TableBody>
         </Table>
       </div>
+      
+      {productos.length > 0 && (
+          <div className="flex items-center justify-between bg-white px-4 py-3 border-t rounded-lg shadow">
+            <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-700">Mostrando {indicePrimerItem + 1} - {Math.min(indiceUltimoItem, productos.length)} de {productos.length}</span>
+            </div>
+            <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => cambiarPagina(paginaActual - 1)} disabled={paginaActual === 1}><ChevronLeft className="h-4 w-4" /> Ant.</Button>
+                <span className="text-sm font-medium px-2 flex items-center">Pág {paginaActual}/{totalPaginas}</span>
+                <Button variant="outline" size="sm" onClick={() => cambiarPagina(paginaActual + 1)} disabled={paginaActual === totalPaginas}>Sig. <ChevronRight className="h-4 w-4" /></Button>
+            </div>
+          </div>
+      )}
     </div>
   );
 }

@@ -13,7 +13,6 @@ export function Categorias() {
   const [editingCategoria, setEditingCategoria] = useState(null);
   const [formData, setFormData] = useState({ nomCateg: '' });
 
-  // --- HELPER PARA LEER CSV (Corregido para GitHub Pages) ---
   const fetchCsvData = (path) => {
     // Ajustamos la ruta para que funcione tanto en local como en producción
     const relativePath = path.startsWith('/') ? path.slice(1) : path;
