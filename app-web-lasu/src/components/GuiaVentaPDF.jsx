@@ -1,10 +1,8 @@
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer';
-// Asumiendo que tu logo está en src/assets/
-// ¡Asegúrate de importar tu logo!
+
 import logoLasu from '../assets/logo_lasu.png'; 
 
-// --- Estilos (traducción de tu layout de TCPDF) ---
 const styles = StyleSheet.create({
   page: { fontFamily: 'Helvetica', fontSize: 9, padding: 10, margin: 0 },
   header: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
@@ -82,11 +80,6 @@ const DibujarGuia = ({ venta, detalle, tituloPie }) => (
       {DuenoDatos.DueDirec}
     </Text>
 
-    {/* --- DATOS DEL CLIENTE --- */}
-    {/* NOTA IMPORTANTE: Tu API de /api/ventas debe devolver estos campos
-      (rucCliente, refCliente, distritoCliente) para que aparezcan aquí.
-      Asegúrate de hacer un JOIN con la tabla Clientes en tu backend.
-    */}
     <View style={styles.clienteSection}>
       <View style={styles.clienteRow}>
         <Text style={styles.clienteLabel}>CLIENTE:</Text>
@@ -110,16 +103,13 @@ const DibujarGuia = ({ venta, detalle, tituloPie }) => (
       </View>
     </View>
     
-    {/* --- TABLA DE PRODUCTOS --- */}
     <View style={styles.table}>
-      {/* Encabezado */}
       <View style={styles.tableRow} fixed>
         <Text style={[styles.tableColHeader, styles.colCant]}>CANT.</Text>
         <Text style={[styles.tableColHeader, styles.colDesc]}>DESCRIPCION</Text>
         <Text style={[styles.tableColHeader, styles.colPUnit]}>P. UNITARIO</Text>
         <Text style={[styles.tableColHeader, styles.colImporte]}>IMPORTE</Text>
       </View>
-      {/* Filas */}
       {detalle.map((p, i) => (
         <View style={styles.tableRow} key={i} wrap={false}>
           <Text style={[styles.tableCol, styles.colCant]}>{p.CantidadProduc}</Text>
@@ -128,7 +118,6 @@ const DibujarGuia = ({ venta, detalle, tituloPie }) => (
           <Text style={[styles.tableCol, styles.colImporte]}>S/ {Number(p.Subtotal).toFixed(2)}</Text>
         </View>
       ))}
-      {/* Total */}
       <View style={styles.totalRow}>
         <Text style={styles.totalLabel}>TOTAL</Text>
         <Text style={styles.totalValue}>S/ {Number(venta.Total).toFixed(2)}</Text>
