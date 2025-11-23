@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import Papa from 'papaparse';
-import { Plus, Pencil, Trash2, FileDown, ChevronLeft, ChevronRight } from 'lucide-react'; // <-- Agregamos iconos de paginación
+import { Plus, Pencil, Trash2, FileDown, ChevronLeft, ChevronRight } from 'lucide-react'; 
 import { Button } from './ui/button';
 import { 
   Dialog, 
@@ -20,7 +20,6 @@ export function Clientes() {
   const [clientes, setClientes] = useState([]); 
   const [distritos, setDistritos] = useState([]); 
 
-  // --- ESTADOS DE PAGINACIÓN ---
   const [paginaActual, setPaginaActual] = useState(1);
   const [itemsPorPagina] = useState(20);
 
@@ -35,7 +34,6 @@ export function Clientes() {
     idDistrCliente: ''
   });
 
-  // --- FUNCIÓN HELPER CSV ---
   const fetchCsvData = (path) => {
     return new Promise((resolve) => {
         Papa.parse(path, {

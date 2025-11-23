@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import Papa from 'papaparse'; // <--- Usamos PapaParse en lugar de Axios
+import Papa from 'papaparse'; 
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
@@ -8,17 +8,19 @@ import { Label } from './ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 
 export function Categorias() {
-  // 1. El estado empieza vacío
   const [categorias, setCategorias] = useState([]);
-
   const [isOpen, setIsOpen] = useState(false);
   const [editingCategoria, setEditingCategoria] = useState(null);
   const [formData, setFormData] = useState({ nomCateg: '' });
 
-  // --- HELPER PARA LEER CSV ---
+  // --- HELPER PARA LEER CSV (Corregido para GitHub Pages) ---
   const fetchCsvData = (path) => {
+    // Ajustamos la ruta para que funcione tanto en local como en producción
+    const relativePath = path.startsWith('/') ? path.slice(1) : path;
+    const url = `${import.meta.env.BASE_URL}${relativePath}`;
+
     return new Promise((resolve) => {
-        Papa.parse(path, {
+        Papa.parse(url, {
             download: true,
             header: true,
             skipEmptyLines: true,
@@ -34,7 +36,7 @@ export function Categorias() {
   // --- (R)EAD: Cargar desde CSV ---
   const cargarCategorias = async () => {
     try {
-      const data = await fetchCsvData('/data/categoria.csv');
+      const data = await fetchCsvData('data/categoria.csv');
       
       // Aseguramos que el ID sea string para evitar problemas de tipos y ordenamos
       const categoriasProcesadas = data.map(c => ({
@@ -42,6 +44,9 @@ export function Categorias() {
           idCateg: String(c.idCateg)
       }));
       
+      // Ordenar por ID (opcional, convierte a número para ordenar correctamente)
+      categoriasProcesadas.sort((a, b) => Number(a.idCateg) - Number(b.idCateg));
+
       setCategorias(categoriasProcesadas);
     } catch (error) {
       console.error('Error al cargar las categorías:', error);
