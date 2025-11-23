@@ -1,0 +1,12 @@
+[
+  {
+    "idUsuario": "1",
+    "nombreUsu": "admin",
+    "contraseñaUsu": "123"
+  },
+  {
+    "idUsuario": "2",
+    "nombreUsu": "vendedor",
+    "contraseñaUsu": "abc"
+  }
+]
