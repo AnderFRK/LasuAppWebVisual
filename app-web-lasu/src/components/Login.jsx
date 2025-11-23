@@ -16,13 +16,16 @@ export function Login({ onLogin }) {
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null); 
+
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
 
     try {
-      const response = await fetch('/data/usuario.json');
+      // --- CORRECCIÓN CLAVE PARA GITHUB PAGES ---
+      // Usamos import.meta.env.BASE_URL para que sepa que está en una subcarpeta
+      const response = await fetch(`${import.meta.env.BASE_URL}data/usuario.json`);
       
       if (!response.ok) {
         throw new Error('No se pudo cargar el archivo de usuarios.');
@@ -152,7 +155,6 @@ export function Login({ onLogin }) {
 
           ) : (
 
-            // --- FORMULARIO DE REGISTRO ---
             <form onSubmit={handleRegisterSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="reg-id" className="text-gray-900">Usuario (ID)</Label>
