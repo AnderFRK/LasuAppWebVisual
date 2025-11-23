@@ -1,0 +1,51 @@
+idProduc,nomProduc,precioProduc,categoria,Stock
+1,Llave Lavatorio Vainsa,45.0,Grifería,168
+2,Mezcladora Ducha Italgrif,120.0,Grifería,33
+3,"Caño Jardin Bronce 1/2""",15.0,Grifería,11
+4,Llave Angular Cromada,12.0,Grifería,194
+5,Mezcladora Monocomando Cocina,180.0,Grifería,75
+6,Caño Lavatorio Pico Alto,65.0,Grifería,67
+7,Ducha Teléfono Completa,45.0,Grifería,62
+8,"Llave de Paso Esférica 1/2""",18.0,Grifería,40
+9,"Válvula Check de Bronce 1""",35.0,Grifería,193
+10,Grifo de Cocina Flexible,75.0,Grifería,31
+11,Llave de Ducha Vástago,22.0,Grifería,178
+12,Pico de Ganso para Lavadero,30.0,Grifería,194
+13,"Tubo PVC Desague 4"" Pavco (3m)",28.0,PVC,144
+14,"Tubo PVC Agua 1/2"" (5m)",14.0,PVC,27
+15,"Codo PVC 4"" Desague 90°",3.5,PVC,156
+16,"Codo PVC 1/2"" Agua 90°",1.5,PVC,113
+17,"Tee PVC 4"" Desague",4.5,PVC,13
+18,"Tee PVC 1/2"" Agua",2.0,PVC,12
+19,"Unión Universal PVC 1/2""",5.0,PVC,28
+20,"Tubo PVC Luz 3/4"" (3m)",8.0,PVC,60
+21,"Curva PVC Luz 3/4""",1.0,PVC,64
+22,"Sombrero de Ventilación 4""",5.5,PVC,134
+23,"Reducción PVC 4"" a 2""",4.0,PVC,159
+24,"Tubo CPVC Agua Caliente 1/2""",22.0,PVC,11
+25,"Codo CPVC 90° 1/2""",3.0,PVC,148
+26,"Tapón Hembra PVC 1/2""",1.0,PVC,55
+27,"Yee PVC Desague 4""",6.5,PVC,188
+28,Pegamento PVC Oatey Azul (1/4 gl),35.0,Pegamentos,171
+29,Pegamento PVC Oatey Regular (Peq),18.0,Pegamentos,184
+30,Silicona Transparente Tubo,12.0,Pegamentos,144
+31,Cinta Teflon Grande,2.5,Pegamentos,112
+32,Sellyx Sellador Acrílico,10.0,Pegamentos,61
+33,Limpia Todo Multiusos 1L,15.0,Pegamentos,119
+34,Sifón Botella Lavatorio PVC,15.0,Accesorios,155
+35,Desague Cromado Lavatorio,25.0,Accesorios,76
+36,Tubo de Abasto Aluminio 40cm,8.0,Accesorios,6
+37,"Rejilla Sumidero Acero 4""",12.0,Accesorios,199
+38,Trampa P para Lavadero,18.0,Accesorios,45
+39,Asiento de Inodoro Blanco,45.0,Accesorios,183
+40,Kit de Accesorios de Baño (6 pzs),85.0,Accesorios,113
+41,Válvula de Entrada Inodoro,28.0,Accesorios,92
+42,Válvula de Salida Inodoro,25.0,Accesorios,76
+43,Pernos de Anclaje Inodoro,5.0,Accesorios,44
+44,Hoja de Sierra Sandflex,5.0,Herramientas,60
+45,Marco de Sierra Profesional,45.0,Herramientas,200
+46,Wincha 5 metros,15.0,Herramientas,91
+47,Destornillador Estrella,12.0,Herramientas,31
+48,"Llave Inglesa 10""",35.0,Herramientas,28
+49,Martillo de Uña,25.0,Herramientas,102
+50,Guantes de Seguridad (Par),8.0,Herramientas,29
