@@ -29,3 +29,7 @@ La aplicación permite gestionar registros almacenados en MySQL y generar predic
 
 ### Base de Datos
 - MySQL
+
+### Login
+Usuario: admin
+Contraseña: 123
