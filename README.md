@@ -29,5 +29,3 @@ La aplicación permite gestionar registros almacenados en MySQL y generar predic
 
 ### Base de Datos
 - MySQL
-
-```bash
