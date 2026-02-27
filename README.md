@@ -31,5 +31,3 @@ La aplicación permite gestionar registros almacenados en MySQL y generar predic
 - MySQL
 
 ```bash
-git clone https://github.com/usuario/nombre-proyecto.git
-cd nombre-proyecto
